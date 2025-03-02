@@ -24,6 +24,30 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
     return 'text-red-400';
   };
 
+  const formatTimeframe = (timeframe: string) => {
+    switch (timeframe) {
+      case '1week': return '1 Week';
+      case '1month': return '1 Month';
+      case '3months': return '3 Months';
+      case '6months': return '6 Months';
+      case '1year': return '1 Year';
+      case '5years': return '5 Years';
+      default: return timeframe;
+    }
+  };
+
+  const formatCategory = (category: string) => {
+    switch (category) {
+      case 'finance': return 'Finance & Markets';
+      case 'sports': return 'Sports & Competitions';
+      case 'entertainment': return 'Entertainment & Media';
+      case 'global': return 'Global Events & Politics';
+      case 'environment': return 'Environment & Climate';
+      case 'technology': return 'Technology & Science';
+      default: return category;
+    }
+  };
+
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -51,10 +75,10 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
           {results.topic}
         </h2>
         <div className="flex flex-wrap justify-center items-center gap-2 text-gray-400 text-sm">
-          <span className="px-3 py-1 bg-gray-700 rounded-full transition-all duration-300 hover:bg-gray-600">{results.category}</span>
+          <span className="px-3 py-1 bg-gray-700 rounded-full transition-all duration-300 hover:bg-gray-600">{formatCategory(results.category)}</span>
           <span className="px-3 py-1 bg-gray-700 rounded-full flex items-center transition-all duration-300 hover:bg-gray-600">
             <Calendar className="inline h-3 w-3 mr-1" />
-            {results.timeframe}
+            {formatTimeframe(results.timeframe)}
           </span>
           <span className="px-3 py-1 bg-gray-700 rounded-full transition-all duration-300 hover:bg-gray-600">
             Last updated: {results.lastUpdated}
@@ -88,13 +112,15 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
           </h3>
           <div className="flex items-center">
             <div className="w-full bg-gray-700 rounded-full h-4 mr-3">
-              <div 
+              <motion.div 
                 className={`h-4 rounded-full ${
                   results.confidence >= 75 ? 'bg-green-500' : 
                   results.confidence >= 50 ? 'bg-yellow-500' : 'bg-red-500'
                 } transition-all duration-500 ease-in-out`}
-                style={{ width: `${results.confidence}%` }}
-              ></div>
+                initial={{ width: 0 }}
+                animate={{ width: `${results.confidence}%` }}
+                transition={{ duration: 0.8 }}
+              ></motion.div>
             </div>
             <span className={`text-xl font-bold ${getConfidenceColor(results.confidence)}`}>
               {results.confidence}%
@@ -133,80 +159,120 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
         </motion.div>
       </motion.div>
 
-      <motion.div 
-        variants={item} 
-        className="bg-gray-900 bg-opacity-60 rounded-lg p-4 mb-6 transition-all duration-300 hover:bg-gray-900/80"
-        whileHover={{ 
-          boxShadow: "0 0 15px rgba(255, 255, 255, 0.1)",
-          y: -2
-        }}
-      >
-        <h3 className="text-lg font-medium mb-3 flex items-center">
-          <BarChart2 className="h-5 w-5 mr-2 text-indigo-400" />
-          Supporting Data Points
-        </h3>
-        <ul className="list-disc pl-5 space-y-2">
-          {results.dataPoints.map((point, index) => (
-            <li key={index} className="transition-all duration-300 hover:text-indigo-300">{point}</li>
-          ))}
-        </ul>
-      </motion.div>
+      {results.dataPoints && results.dataPoints.length > 0 && (
+        <motion.div 
+          variants={item} 
+          className="bg-gray-900 bg-opacity-60 rounded-lg p-4 mb-6 transition-all duration-300 hover:bg-gray-900/80"
+          whileHover={{ 
+            boxShadow: "0 0 15px rgba(255, 255, 255, 0.1)",
+            y: -2
+          }}
+        >
+          <h3 className="text-lg font-medium mb-3 flex items-center">
+            <BarChart2 className="h-5 w-5 mr-2 text-indigo-400" />
+            Supporting Data Points
+          </h3>
+          <ul className="list-disc pl-5 space-y-2">
+            {results.dataPoints.map((point, index) => (
+              <motion.li 
+                key={index} 
+                className="transition-all duration-300 hover:text-indigo-300"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                {point}
+              </motion.li>
+            ))}
+          </ul>
+        </motion.div>
+      )}
 
-      <motion.div 
-        variants={item} 
-        className="bg-gray-900 bg-opacity-60 rounded-lg p-4 mb-6 transition-all duration-300 hover:bg-gray-900/80"
-        whileHover={{ 
-          boxShadow: "0 0 15px rgba(255, 255, 255, 0.1)",
-          y: -2
-        }}
-      >
-        <h3 className="text-lg font-medium mb-3 flex items-center">
-          <AlertTriangle className="h-5 w-5 mr-2 text-indigo-400" />
-          Variables That Could Affect Outcome
-        </h3>
-        <ul className="list-disc pl-5 space-y-2">
-          {results.variables.map((variable, index) => (
-            <li key={index} className="transition-all duration-300 hover:text-indigo-300">{variable}</li>
-          ))}
-        </ul>
-      </motion.div>
+      {results.variables && results.variables.length > 0 && (
+        <motion.div 
+          variants={item} 
+          className="bg-gray-900 bg-opacity-60 rounded-lg p-4 mb-6 transition-all duration-300 hover:bg-gray-900/80"
+          whileHover={{ 
+            boxShadow: "0 0 15px rgba(255, 255, 255, 0.1)",
+            y: -2
+          }}
+        >
+          <h3 className="text-lg font-medium mb-3 flex items-center">
+            <AlertTriangle className="h-5 w-5 mr-2 text-indigo-400" />
+            Variables That Could Affect Outcome
+          </h3>
+          <ul className="list-disc pl-5 space-y-2">
+            {results.variables.map((variable, index) => (
+              <motion.li 
+                key={index} 
+                className="transition-all duration-300 hover:text-indigo-300"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                {variable}
+              </motion.li>
+            ))}
+          </ul>
+        </motion.div>
+      )}
 
       <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <motion.div 
-          className="bg-gray-900 bg-opacity-60 rounded-lg p-4 transition-all duration-300 hover:bg-gray-900/80"
-          whileHover={{ 
-            boxShadow: "0 0 15px rgba(255, 255, 255, 0.1)",
-            y: -2
-          }}
-        >
-          <h3 className="text-lg font-medium mb-3 flex items-center">
-            <History className="h-5 w-5 mr-2 text-indigo-400" />
-            Historical Patterns
-          </h3>
-          <ul className="list-disc pl-5 space-y-2">
-            {results.historicalPatterns.map((pattern, index) => (
-              <li key={index} className="transition-all duration-300 hover:text-indigo-300">{pattern}</li>
-            ))}
-          </ul>
-        </motion.div>
+        {results.historicalPatterns && results.historicalPatterns.length > 0 && (
+          <motion.div 
+            className="bg-gray-900 bg-opacity-60 rounded-lg p-4 transition-all duration-300 hover:bg-gray-900/80"
+            whileHover={{ 
+              boxShadow: "0 0 15px rgba(255, 255, 255, 0.1)",
+              y: -2
+            }}
+          >
+            <h3 className="text-lg font-medium mb-3 flex items-center">
+              <History className="h-5 w-5 mr-2 text-indigo-400" />
+              Historical Patterns
+            </h3>
+            <ul className="list-disc pl-5 space-y-2">
+              {results.historicalPatterns.map((pattern, index) => (
+                <motion.li 
+                  key={index} 
+                  className="transition-all duration-300 hover:text-indigo-300"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  {pattern}
+                </motion.li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
 
-        <motion.div 
-          className="bg-gray-900 bg-opacity-60 rounded-lg p-4 transition-all duration-300 hover:bg-gray-900/80"
-          whileHover={{ 
-            boxShadow: "0 0 15px rgba(255, 255, 255, 0.1)",
-            y: -2
-          }}
-        >
-          <h3 className="text-lg font-medium mb-3 flex items-center">
-            <GitBranch className="h-5 w-5 mr-2 text-indigo-400" />
-            Alternative Scenarios
-          </h3>
-          <ul className="list-disc pl-5 space-y-2">
-            {results.alternativeScenarios.map((scenario, index) => (
-              <li key={index} className="transition-all duration-300 hover:text-indigo-300">{scenario}</li>
-            ))}
-          </ul>
-        </motion.div>
+        {results.alternativeScenarios && results.alternativeScenarios.length > 0 && (
+          <motion.div 
+            className="bg-gray-900 bg-opacity-60 rounded-lg p-4 transition-all duration-300 hover:bg-gray-900/80"
+            whileHover={{ 
+              boxShadow: "0 0 15px rgba(255, 255, 255, 0.1)",
+              y: -2
+            }}
+          >
+            <h3 className="text-lg font-medium mb-3 flex items-center">
+              <GitBranch className="h-5 w-5 mr-2 text-indigo-400" />
+              Alternative Scenarios
+            </h3>
+            <ul className="list-disc pl-5 space-y-2">
+              {results.alternativeScenarios.map((scenario, index) => (
+                <motion.li 
+                  key={index} 
+                  className="transition-all duration-300 hover:text-indigo-300"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  {scenario}
+                </motion.li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
       </motion.div>
 
       <motion.div 

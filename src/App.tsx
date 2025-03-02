@@ -23,8 +23,8 @@ function App() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showApiStatus, setShowApiStatus] = useState(false);
-  const [apiStatuses, setApiStatuses] = useState<ApiStatus[]>([]);
   const [isListening, setIsListening] = useState(false);
+  const [apiStatuses, setApiStatuses] = useState<ApiStatus[]>([]);
   const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[]>([
     { name: 'Voice Recognition', status: 'pending' },
     { name: 'Natural Language Processing', status: 'pending' },
@@ -40,6 +40,11 @@ function App() {
         setApiStatuses(statuses);
       } catch (err) {
         console.error('Failed to fetch API status:', err);
+        setApiStatuses([
+          { name: 'Prediction API', status: 'error', message: 'Failed to connect' },
+          { name: 'Voice RSS TTS', status: 'error', message: 'Failed to connect' },
+          { name: 'Speech Recognition', status: 'connected' }
+        ]);
       }
     };
 
@@ -67,6 +72,7 @@ function App() {
       await simulatePipelineProcessing();
       
       const data = await getPrediction(predictionRequest);
+      console.log("API Response:", data); // Log the API response for debugging
       setResults(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate prediction. Please try again.';

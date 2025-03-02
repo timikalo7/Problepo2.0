@@ -134,7 +134,7 @@ const generatePredictionData = async (request) => {
       lastUpdated
     };
   } catch (err) {
-    console.error("Error generating AI prediction data:", err);
+    console.error("Error generating AI prediction data acc:", err);
     throw err;
   }
 };

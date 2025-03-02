@@ -35,8 +35,7 @@ const AudioResponse: React.FC<AudioResponseProps> = ({ text, isGenerating }) => 
       }
 
       const data = await response.json();
-      // data.audioUrl should contain the generated audio URL
-
+      
       if (audioRef.current) {
         audioRef.current.src = data.audioUrl;
         audioRef.current.onplaying = () => {
@@ -52,7 +51,15 @@ const AudioResponse: React.FC<AudioResponseProps> = ({ text, isGenerating }) => 
           setIsLoading(false);
         };
         // Start playback
-        await audioRef.current.play();
+        const playPromise = audioRef.current.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error('Audio playback error:', error);
+            setError('Failed to play audio. Try clicking the button again.');
+            setIsLoading(false);
+          });
+        }
       }
     } catch (err) {
       setIsLoading(false);

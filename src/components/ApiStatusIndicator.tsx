@@ -1,47 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { ApiStatus } from '../types';
 
-interface ApiStatus {
-  name: string;
-  status: 'connected' | 'error' | 'disabled';
-  message?: string;
+interface ApiStatusIndicatorProps {
+  apiStatuses: ApiStatus[];
 }
 
-const ApiStatusIndicator: React.FC = () => {
-  const [apiStatuses, setApiStatuses] = useState<ApiStatus[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchApiStatuses = async () => {
-    try {
-      const response = await axios.get<ApiStatus[]>('http://localhost:3001/api/status');
-      setApiStatuses(response.data);
-    } catch (err: any) {
-      console.error('Error fetching API statuses:', err);
-      setError('Failed to fetch API statuses.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchApiStatuses();
-  }, []);
-
-  if (loading) {
+const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ apiStatuses }) => {
+  if (!apiStatuses || apiStatuses.length === 0) {
     return (
       <div className="bg-gray-800 p-4 rounded-xl text-white">
-        Loading API statuses...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-gray-800 p-4 rounded-xl text-red-400">
-        {error}
+        No API status information available.
       </div>
     );
   }

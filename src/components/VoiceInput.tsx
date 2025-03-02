@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Mic, MicOff, Volume2, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Loader2 } from 'lucide-react';
 import 'regenerator-runtime/runtime';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
@@ -32,10 +32,18 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
     }
   }, [transcript, onTranscriptChange]);
 
+  useEffect(() => {
+    // Start listening when isListening becomes true
+    if (isListening && !listening) {
+      handleStartListening();
+    } else if (!isListening && listening) {
+      handleStopListening();
+    }
+  }, [isListening, listening]);
+
   const handleStartListening = async () => {
     try {
       setErrorMessage('');
-      setIsListening(true);
       resetTranscript();
       await SpeechRecognition.startListening({ continuous: true });
     } catch (error) {
@@ -47,7 +55,6 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
 
   const handleStopListening = () => {
     SpeechRecognition.stopListening();
-    setIsListening(false);
     setIsProcessing(true);
     
     // Simulate processing delay
@@ -93,7 +100,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={isListening ? handleStopListening : handleStartListening}
+            onClick={() => setIsListening(!isListening)}
             className={`rounded-full p-3 flex items-center justify-center ${
               isListening 
                 ? 'bg-red-600 hover:bg-red-700' 

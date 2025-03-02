@@ -39,61 +39,92 @@ const rateLimiter = {
   
   check: function(req, res, next) {
     const ip = req.ip;
-    
-    // Reset counts if window has passed
     if (Date.now() > this.resetTime) {
       this.requestCounts.clear();
       this.resetTime = Date.now() + this.windowMs;
     }
-    
-    // Get current count for this IP
     const currentCount = this.requestCounts.get(ip) || 0;
-    
     if (currentCount >= this.maxRequests) {
       return res.status(429).json({
         error: 'Too many requests, please try again later.',
         retryAfter: Math.ceil((this.resetTime - Date.now()) / 1000)
       });
     }
-    
-    // Increment count
     this.requestCounts.set(ip, currentCount + 1);
     next();
   }
 };
 
-// Mock financial data (in a real app, you would use a real API)
+// ========================
+// Financial Data via Alpha Vantage API
+// ========================
 const getFinancialData = async (ticker) => {
-  // For demo purposes, we'll generate mock data
-  const randomPrice = (Math.random() * 200 + 50).toFixed(2);
-  const randomChange = (Math.random() * 10 - 5).toFixed(2);
-  const changePercent = (randomChange / randomPrice * 100).toFixed(2);
-  const volume = Math.floor(Math.random() * 10000000) + 1000000;
-  const marketCap = ['$1.2B', '$4.5B', '$780M', '$22.3B', '$105.7B'][Math.floor(Math.random() * 5)];
-  
-  return {
-    price: {
-      current: parseFloat(randomPrice),
-      change: parseFloat(randomChange),
-      changePercent: parseFloat(changePercent)
-    },
-    volume,
-    marketCap
-  };
+  try {
+    // Call Global Quote endpoint
+    const globalQuoteUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${process.env.ALPHAVANTAGE_API_KEY}`;
+    const globalResponse = await fetch(globalQuoteUrl);
+    const globalData = await globalResponse.json();
+    const quote = globalData["Global Quote"];
+    if (!quote) {
+      throw new Error("Financial data not available");
+    }
+    const priceCurrent = parseFloat(quote["05. price"]);
+    const priceChange = parseFloat(quote["09. change"]);
+    const priceChangePercentStr = quote["10. change percent"]; // e.g. "0.7177%"
+    const priceChangePercent = parseFloat(priceChangePercentStr);
+    const volume = parseInt(quote["06. volume"]);
+    
+    // Call Company Overview endpoint for market cap
+    const overviewUrl = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}&apikey=${process.env.ALPHAVANTAGE_API_KEY}`;
+    const overviewResponse = await fetch(overviewUrl);
+    const overviewData = await overviewResponse.json();
+    const marketCap = overviewData["MarketCapitalization"]
+      ? `$${(parseFloat(overviewData["MarketCapitalization"]) / 1e9).toFixed(1)}B`
+      : "N/A";
+    
+    return {
+      price: {
+        current: priceCurrent,
+        change: priceChange,
+        changePercent: priceChangePercent
+      },
+      volume,
+      marketCap
+    };
+  } catch (error) {
+    console.error("Error fetching financial data:", error);
+    throw error;
+  }
 };
 
-// Generate prediction data based on category
+// ========================
+// Company News via News API
+// ========================
+const getCompanyNews = async (company) => {
+  try {
+    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(company)}&apiKey=${process.env.NEWS_API_KEY}&pageSize=5`;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.articles && data.articles.length > 0) {
+      return data.articles.map(article => article.title);
+    } else {
+      return [`No news found for ${company}.`];
+    }
+  } catch (error) {
+    console.error("Error fetching company news:", error);
+    return [`Error fetching news for ${company}.`];
+  }
+};
+
+// ========================
+// Prediction Generation (internal logic remains)
+// ========================
 const generatePredictionData = (request) => {
   const { topic, category, timeframe, context } = request;
-  
-  // Generate confidence level (50-95%)
   const confidence = Math.floor(Math.random() * 46) + 50;
-  
-  // Generate trend direction
   const trendOptions = ['up', 'down', 'neutral'];
   const trend = trendOptions[Math.floor(Math.random() * trendOptions.length)];
   
-  // Generate prediction based on category
   let prediction = '';
   let dataPoints = [];
   let variables = [];
@@ -291,7 +322,6 @@ const generatePredictionData = (request) => {
       ];
   }
   
-  // Format date
   const now = new Date();
   const lastUpdated = now.toLocaleString('en-US', {
     month: 'short',
@@ -317,7 +347,7 @@ const generatePredictionData = (request) => {
   };
 };
 
-// Generate finance-specific predictions
+// Finance-specific predictions
 const generateFinancePrediction = (topic, timeframe, trend) => {
   const upPredictions = [
     `${topic} is projected to experience growth over the ${formatTimeframe(timeframe)}. Market indicators suggest positive momentum with potential for increased valuation.`,
@@ -346,7 +376,6 @@ const generateFinancePrediction = (topic, timeframe, trend) => {
   }
 };
 
-// Generate finance-specific data points
 const generateFinanceDataPoints = (topic) => {
   return [
     `${topic} has shown a correlation with broader market indices of 0.76`,
@@ -357,7 +386,7 @@ const generateFinanceDataPoints = (topic) => {
   ];
 };
 
-// Generate sports predictions
+// Sports predictions
 const generateSportsPrediction = (topic, timeframe) => {
   const predictions = [
     `${topic} shows strong potential for success in the upcoming ${formatTimeframe(timeframe)}. Performance metrics and competitive analysis suggest favorable outcomes.`,
@@ -369,7 +398,7 @@ const generateSportsPrediction = (topic, timeframe) => {
   return predictions[Math.floor(Math.random() * predictions.length)];
 };
 
-// Generate entertainment predictions
+// Entertainment predictions
 const generateEntertainmentPrediction = (topic, timeframe) => {
   const predictions = [
     `${topic} is projected to generate significant audience interest over the next ${formatTimeframe(timeframe)}. Engagement metrics and early indicators suggest strong reception.`,
@@ -381,7 +410,7 @@ const generateEntertainmentPrediction = (topic, timeframe) => {
   return predictions[Math.floor(Math.random() * predictions.length)];
 };
 
-// Generate global event predictions
+// Global event predictions
 const generateGlobalPrediction = (topic, timeframe) => {
   const predictions = [
     `${topic} is likely to evolve significantly over the next ${formatTimeframe(timeframe)}. Current diplomatic efforts and stakeholder positions suggest movement toward resolution.`,
@@ -393,7 +422,7 @@ const generateGlobalPrediction = (topic, timeframe) => {
   return predictions[Math.floor(Math.random() * predictions.length)];
 };
 
-// Generate environment predictions
+// Environment predictions
 const generateEnvironmentPrediction = (topic, timeframe) => {
   const predictions = [
     `${topic} is projected to show measurable changes over the next ${formatTimeframe(timeframe)}. Scientific models suggest continued trends with potential acceleration.`,
@@ -405,7 +434,7 @@ const generateEnvironmentPrediction = (topic, timeframe) => {
   return predictions[Math.floor(Math.random() * predictions.length)];
 };
 
-// Generate technology predictions
+// Technology predictions
 const generateTechnologyPrediction = (topic, timeframe) => {
   const predictions = [
     `${topic} is poised for significant advancement in the next ${formatTimeframe(timeframe)}. Development roadmaps and research progress suggest breakthrough potential.`,
@@ -417,50 +446,40 @@ const generateTechnologyPrediction = (topic, timeframe) => {
   return predictions[Math.floor(Math.random() * predictions.length)];
 };
 
-// Format timeframe for readable output
+// Helper: Format timeframe for output
 const formatTimeframe = (timeframe) => {
   switch (timeframe) {
-    case '1week':
-      return 'week';
-    case '1month':
-      return 'month';
-    case '3months':
-      return 'three months';
-    case '6months':
-      return 'six months';
-    case '1year':
-      return 'year';
-    case '5years':
-      return 'five years';
-    default:
-      return 'coming period';
+    case '1week': return 'week';
+    case '1month': return 'month';
+    case '3months': return 'three months';
+    case '6months': return 'six months';
+    case '1year': return 'year';
+    case '5years': return 'five years';
+    default: return 'coming period';
   }
 };
 
-// Legacy endpoint for sentiment analysis (keeping for backward compatibility)
+// ========================
+// Sentiment Analysis Endpoint
+// ========================
 app.post('/api/analyze', rateLimiter.check.bind(rateLimiter), async (req, res) => {
   try {
     const { company } = req.body;
-    
     if (!company) {
       return res.status(400).json({ error: 'Company name is required' });
     }
     
-    // Get company news (mock data for demo)
+    // Fetch company news via News API
     const news = await getCompanyNews(company);
     
-    // Analyze sentiment of news
+    // Analyze sentiment of the headlines
     let totalScore = 0;
     news.forEach(headline => {
       const tokens = tokenizer.tokenize(headline);
       const sentimentScore = analyzer.getSentiment(tokens);
       totalScore += sentimentScore;
     });
-    
-    // Calculate average sentiment
     const averageSentiment = totalScore / news.length;
-    
-    // Determine sentiment label
     let sentimentLabel = 'neutral';
     if (averageSentiment > 0.2) {
       sentimentLabel = 'positive';
@@ -468,16 +487,15 @@ app.post('/api/analyze', rateLimiter.check.bind(rateLimiter), async (req, res) =
       sentimentLabel = 'negative';
     }
     
-    // Generate ticker symbol (in a real app, you would look this up)
+    // For demo purposes, derive ticker from company name
     const ticker = company.slice(0, 4).toUpperCase();
     
-    // Get financial data (mock data for demo)
+    // Fetch financial data via Alpha Vantage API
     const financialData = await getFinancialData(ticker);
     
-    // Generate mystical prediction
+    // Generate a mystical prediction based on sentiment
     const prediction = generatePrediction({ score: averageSentiment, label: sentimentLabel });
     
-    // Format date
     const now = new Date();
     const lastUpdated = now.toLocaleString('en-US', {
       month: 'short',
@@ -488,7 +506,6 @@ app.post('/api/analyze', rateLimiter.check.bind(rateLimiter), async (req, res) =
       hour12: true
     });
     
-    // Return combined results
     res.json({
       company,
       ticker,
@@ -506,24 +523,7 @@ app.post('/api/analyze', rateLimiter.check.bind(rateLimiter), async (req, res) =
   }
 });
 
-// Mock news data (in a real app, you would use a real API)
-const getCompanyNews = async (company) => {
-  // For demo purposes, we'll return mock news
-  return [
-    `${company} announces new product line`,
-    `${company} reports quarterly earnings`,
-    `${company} stock rises amid market uncertainty`,
-    `Investors optimistic about ${company}'s future`,
-    `${company} faces challenges in current market`,
-    `Analysts predict strong growth for ${company}`,
-    `${company} expands into new markets`,
-    `${company} CEO discusses future plans`,
-    `${company} stock performance exceeds expectations`,
-    `Market experts weigh in on ${company}'s strategy`
-  ].sort(() => 0.5 - Math.random()).slice(0, 5);
-};
-
-// Generate a prediction based on sentiment
+// Generate prediction based on sentiment (internal logic)
 const generatePrediction = (sentiment) => {
   const predictions = {
     positive: [
@@ -553,19 +553,16 @@ const generatePrediction = (sentiment) => {
   return predictions[category][Math.floor(Math.random() * predictions[category].length)];
 };
 
-// New endpoint for general predictions
+// ========================
+// General Prediction Endpoint
+// ========================
 app.post('/api/predict', rateLimiter.check.bind(rateLimiter), (req, res) => {
   try {
     const predictionRequest = req.body;
-    
     if (!predictionRequest.topic) {
       return res.status(400).json({ error: 'Prediction topic is required' });
     }
-    
-    // Generate prediction data
     const predictionData = generatePredictionData(predictionRequest);
-    
-    // Return results
     res.json(predictionData);
   } catch (error) {
     console.error('Error generating prediction:', error);
@@ -573,42 +570,85 @@ app.post('/api/predict', rateLimiter.check.bind(rateLimiter), (req, res) => {
   }
 });
 
-// New endpoint for text-to-speech (mock implementation)
-app.post('/api/text-to-speech', rateLimiter.check.bind(rateLimiter), (req, res) => {
+// ========================
+// Text-to-Speech via Voice RSS API
+// ========================
+app.post('/api/text-to-speech', rateLimiter.check.bind(rateLimiter), async (req, res) => {
   try {
     const { text } = req.body;
-    
     if (!text) {
       return res.status(400).json({ error: 'Text is required' });
     }
-    
-    // In a real implementation, this would call a TTS service
-    // For demo purposes, we're returning a mock audio URL
-    
-    // Simulate processing delay
-    setTimeout(() => {
-      res.json({
-        audioUrl: 'data:audio/mp3;base64,MOCK_AUDIO_DATA',
-        format: 'mp3'
-      });
-    }, 1000);
+    const apiKey = process.env.VOICERSS_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'TTS API key not configured' });
+    }
+    const ttsUrl = `http://api.voicerss.org/?key=${apiKey}&hl=en-us&src=${encodeURIComponent(text)}`;
+    // Return the URL for the generated MP3 audio
+    res.json({
+      audioUrl: ttsUrl,
+      format: 'mp3'
+    });
   } catch (error) {
     console.error('Error generating speech:', error);
     res.status(500).json({ error: 'Failed to generate speech' });
   }
 });
 
-// New endpoint for API status (mock implementation)
-app.get('/api/status', (req, res) => {
-  // In a real implementation, this would check actual API connections
-  // For demo purposes, we're returning mock statuses
+// ========================
+// API Status Endpoint: Check real free API statuses
+// ========================
+app.get('/api/status', async (req, res) => {
+  // Check Alpha Vantage
+  let alphaVantageStatus = 'unknown';
+  try {
+    const globalQuoteUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey=${process.env.PI_KEY}`;
+    const response = await fetch(globalQuoteUrl);
+    const data = await response.json();
+    if (data["Global Quote"]) {
+      alphaVantageStatus = 'connected';
+    } else {
+      alphaVantageStatus = 'error';
+    }
+  } catch (error) {
+    alphaVantageStatus = 'error';
+  }
+
+  // Check News API
+  let newsApiStatus = 'unknown';
+  try {
+    const newsUrl = `https://newsapi.org/v2/top-headlines?country=us&pageSize=1&apiKey=${process.env.NEWS_API_KEY}`;
+    const response = await fetch(newsUrl);
+    const data = await response.json();
+    if (data.articles) {
+      newsApiStatus = 'connected';
+    } else {
+      newsApiStatus = 'error';
+    }
+  } catch (error) {
+    newsApiStatus = 'error';
+  }
+  
+  // Check Voice RSS API by making a test call
+  let voiceRssStatus = 'unknown';
+  try {
+    const testText = "Test";
+    const ttsUrl = `http://api.voicerss.org/?key=${process.env.VOICERSS_API_KEY}&hl=en-us&src=${encodeURIComponent(testText)}`;
+    const response = await fetch(ttsUrl);
+    const data = await response.text();
+    if (data && !data.includes("ERROR")) {
+      voiceRssStatus = 'connected';
+    } else {
+      voiceRssStatus = 'error';
+    }
+  } catch (error) {
+    voiceRssStatus = 'error';
+  }
+  
   res.json([
-    { name: 'OpenAI API', status: 'connected' },
-    { name: 'Google Cloud NLP', status: 'connected' },
-    { name: 'Twitter API', status: 'disabled', message: 'Not configured' },
-    { name: 'Facebook Graph API', status: 'disabled', message: 'Not configured' },
-    { name: 'Hugging Face', status: 'connected' },
-    { name: 'ScraperAPI', status: 'error', message: 'Authentication failed' },
+    { name: 'Alpha Vantage', status: alphaVantageStatus },
+    { name: 'News API', status: newsApiStatus },
+    { name: 'Voice RSS TTS', status: voiceRssStatus }
   ]);
 });
 

@@ -59,7 +59,7 @@ const rateLimiter = {
 // Helper: Call Hugging Face Inference API for AI-generated predictions
 // ----------------------------
 const generateAIResponse = async (prompt) => {
-  const hfApiKey = "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";
+  const hfApiKey = process.env.HF_API_KEY;
   if (!hfApiKey) throw new Error("Hugging Face API key not configured");
   const response = await fetch("https://api-inference.huggingface.co/models/distilgpt2", {
     method: "POST",

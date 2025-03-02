@@ -20,6 +20,12 @@ def predict():
     topic = data.get('topic')
     category = data.get('category')
     timeframe = data.get('timeframe')
+    prediction = data.get('prediction')
+    dataPoints = data.get('dataPoints')
+    variables = data.get('variables')
+    historicalPatterns = data.get('historicalPatterns')
+    alternativeScenarios = data.get('alternativeScenarios')
+
     if not topic or not category or not timeframe:
         return jsonify({'error': 'Missing required fields (topic, category, timeframe)'}), 400
 
@@ -27,79 +33,6 @@ def predict():
     confidence = random.randint(50, 95)
     trend = random.choice(['up', 'down', 'neutral'])
     
-    # Prepare category-specific prediction messages
-    if category.lower() == 'finance':
-        predictions = {
-            'up': [
-                f"{topic} is projected to experience significant growth in the coming {timeframe}.",
-                f"Positive trends suggest that {topic} will rise over the next {timeframe}."
-            ],
-            'down': [
-                f"{topic} may face a downturn in the next {timeframe} due to market corrections.",
-                f"Forecasts indicate a potential decline for {topic} over the coming {timeframe}."
-            ],
-            'neutral': [
-                f"{topic} is expected to remain stable over the next {timeframe}.",
-                f"Market conditions for {topic} suggest a balanced outlook for {timeframe}."
-            ]
-        }
-    elif category.lower() == 'sports':
-        predictions = {
-            'up': [
-                f"{topic} is set to perform strongly in the next {timeframe} tournament.",
-                f"Optimistic outlook for {topic} in upcoming matches over the next {timeframe}."
-            ],
-            'down': [
-                f"{topic} may struggle in the upcoming {timeframe} due to tough competition.",
-                f"Challenges ahead for {topic} in the next {timeframe} season."
-            ],
-            'neutral': [
-                f"{topic} is expected to have an even performance in the next {timeframe}.",
-                f"Balanced performance is anticipated for {topic} over the coming {timeframe}."
-            ]
-        }
-    else:
-        # Default for other categories
-        predictions = {
-            'up': [
-                f"{topic} is expected to see improvements in the next {timeframe}.",
-                f"Positive developments for {topic} over the coming {timeframe}."
-            ],
-            'down': [
-                f"{topic} may face setbacks in the next {timeframe}.",
-                f"Challenges might hinder {topic} over the coming {timeframe}."
-            ],
-            'neutral': [
-                f"{topic} is likely to remain steady in the next {timeframe}.",
-                f"Stable conditions for {topic} over the coming {timeframe}."
-            ]
-        }
-    
-    prediction = random.choice(predictions[trend])
-    dataPoints = [
-        f"Recent trends indicate growing interest in {topic}.",
-        f"Historical data shows a similar pattern for {topic}.",
-        f"Market analysis aligns with a {trend} movement.",
-        f"Expert opinions are divided on {topic}.",
-        f"Technical indicators support the predicted outcome."
-    ]
-    variables = [
-        "Unexpected market events",
-        "Regulatory changes",
-        "Technological innovations",
-        "Global economic shifts",
-        "Consumer behavior trends"
-    ]
-    historicalPatterns = [
-        "Similar patterns observed in past cycles.",
-        "Historical data shows cyclical behavior.",
-        "Past performance indicates comparable trends."
-    ]
-    alternativeScenarios = [
-        "Optimistic scenario: Rapid improvement.",
-        "Pessimistic scenario: Gradual decline.",
-        "Neutral scenario: Steady state continues."
-    ]
     lastUpdated = datetime.datetime.now().strftime("%b %d, %Y, %I:%M %p")
     
     result = {

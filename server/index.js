@@ -59,7 +59,7 @@ const rateLimiter = {
 // Helper: Call Hugging Face Inference API for AI-generated predictions
 // ----------------------------
 const generateAIResponse = async (prompt) => {
-  const hfApiKey = "";
+  const hfApiKey = "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";
   if (!hfApiKey) throw new Error("Hugging Face API key not configured");
   const response = await fetch("https://api-inference.huggingface.co/models/distilgpt2", {
     method: "POST",
@@ -101,18 +101,13 @@ const formatTimeframe = (timeframe) => {
  */
 const generatePredictionData = async (request) => {
   const { topic, category, timeframe, context } = request;
-  const prompt = `You are an expert predictor in the domain of ${category}.
-Generate a JSON object with the following keys:
-- "prediction": A detailed prediction statement for "${topic}" over the next ${formatTimeframe(timeframe)}.
-- "dataPoints": An array of 5 bullet points supporting the prediction.
-- "variables": An array of 5 key factors that may affect the outcome.
-- "historicalPatterns": An array of 3 historical patterns relevant to this topic.
-- "alternativeScenarios": An array of 3 alternative scenarios for the outcome.
-
-Ensure the output is valid JSON.`;
+  const prompt = `{
+    "instruction": "You are an expert predictor in the domain of ${category}. Generate a JSON object with the following keys: \\"prediction\\": A detailed prediction statement for \\"${topic}\\" over the next ${formatTimeframe(timeframe)}; \\"dataPoints\\": an array of 5 bullet points supporting the prediction; \\"variables\\": an array of 5 key factors that may affect the outcome; \\"historicalPatterns\\": an array of 3 historical patterns relevant to this topic; \\"alternativeScenarios\\": an array of 3 alternative scenarios for the outcome. Output only valid JSON."
+  }`;
   try {
     const aiText = await generateAIResponse(prompt);
-    const aiData = JSON.parse(aiText);
+    const trimmedResponse = aiText.substring(aiText.indexOf('{'), aiText.indexOf('}') + 1)
+    const aiData = JSON.parse(trimmedResponse);
     const confidence = Math.floor(Math.random() * 46) + 50; // Optionally, you can also generate this via AI.
     const trendOptions = ['up', 'down', 'neutral'];
     const trend = trendOptions[Math.floor(Math.random() * trendOptions.length)];

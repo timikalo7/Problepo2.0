@@ -22,30 +22,38 @@ const AudioResponse: React.FC<AudioResponseProps> = ({ text, isGenerating }) => 
     try {
       setIsLoading(true);
       setError('');
-      
-      // In a real implementation, this would call the backend to generate audio
-      // For demo purposes, we're using the browser's built-in speech synthesis
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-      
-      utterance.onstart = () => {
-        setIsPlaying(true);
-        setIsLoading(false);
-      };
-      
-      utterance.onend = () => {
-        setIsPlaying(false);
-      };
-      
-      utterance.onerror = () => {
-        setIsPlaying(false);
-        setIsLoading(false);
-        setError('Failed to play audio');
-      };
-      
-      window.speechSynthesis.speak(utterance);
+
+      // Call your backend text-to-speech API endpoint
+      const response = await fetch('http://localhost:3001/api/text-to-speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error('TTS request failed');
+      }
+
+      const data = await response.json();
+      // data.audioUrl should contain the generated audio URL
+
+      if (audioRef.current) {
+        audioRef.current.src = data.audioUrl;
+        audioRef.current.onplaying = () => {
+          setIsPlaying(true);
+          setIsLoading(false);
+        };
+        audioRef.current.onended = () => {
+          setIsPlaying(false);
+        };
+        audioRef.current.onerror = () => {
+          setError('Failed to play audio');
+          setIsPlaying(false);
+          setIsLoading(false);
+        };
+        // Start playback
+        await audioRef.current.play();
+      }
     } catch (err) {
       setIsLoading(false);
       setError('Failed to generate or play audio');
@@ -54,8 +62,11 @@ const AudioResponse: React.FC<AudioResponseProps> = ({ text, isGenerating }) => 
   };
 
   const handleStopAudio = () => {
-    window.speechSynthesis.cancel();
-    setIsPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
   };
 
   return (
